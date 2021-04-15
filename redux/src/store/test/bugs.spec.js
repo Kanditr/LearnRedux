@@ -17,14 +17,24 @@ describe("bugsSlice", () => {
   const createState = () => ({
     entities: {
       bugs: {
-        list: []
-      }
-    }
+        list: [],
+      },
+    },
+  });
+
+  it("should mark the bug as resolved if it's saved to the server", async () => {
+    fakeAxios.onPatch("/bugs/1").reply(200, { id: 1, resolved: true });
+    fakeAxios.onPost("/bugs").reply(200, { id: 1 });
+
+    await store.dispatch(addBug({ id: 1 }));
+    await store.dispatch(resolveBug(1));
+
+    expect(bugsSlice().list[0].resolved).toBe(true);
   });
 
   describe("loading bugs", () => {
     describe("if the bugs exist in the cache", () => {
-      it("they should not be fetched from the server again.", async () => {
+      it("they should not be fetched from the server again", async () => {
         fakeAxios.onGet("/bugs").reply(200, [{ id: 1 }]);
 
         await store.dispatch(loadBugs());
@@ -72,23 +82,11 @@ describe("bugsSlice", () => {
     });
   });
 
-  it("should mark the bug as resolved if it's saved to the server.", async () => {
-    // AAA
-    fakeAxios.onPatch("/bugs/1").reply(200, { id: 1, resolved: true });
-    fakeAxios.onPost("/bugs").reply(200, { id: 1 });
-
-    await store.dispatch(addBug({}));
-    await store.dispatch(resolveBug(1));
-
-    expect(bugsSlice().list[0].resolved).toBe(true);
-  });
-
-  it("should not mark the bug as resolved if it's not saved to the server.", async () => {
-    // AAA
+  it("should not mark the bug as resolved if it's not saved to the server", async () => {
     fakeAxios.onPatch("/bugs/1").reply(500);
     fakeAxios.onPost("/bugs").reply(200, { id: 1 });
 
-    await store.dispatch(addBug({}));
+    await store.dispatch(addBug({ id: 1 }));
     await store.dispatch(resolveBug(1));
 
     expect(bugsSlice().list[0].resolved).not.toBe(true);
@@ -119,7 +117,7 @@ describe("bugsSlice", () => {
       state.entities.bugs.list = [
         { id: 1, resolved: true },
         { id: 2 },
-        { id: 3 }
+        { id: 3 },
       ];
 
       const result = getUnresolvedBugs(state);
